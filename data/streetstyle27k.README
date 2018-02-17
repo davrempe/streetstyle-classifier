@@ -1,0 +1,76 @@
+id - unique identifier for person detection
+url - image URL
+      Note: Please use the archive as these URLs will be going offline.  Given a URL of the form https://s3.amazonaws.com/stylyze/ABCXXXXXXXXXXX.jpg, the corresponding file in the archive will be A/B/C/ABCXXXXXXXXXXX.jpg.
+created_time - instagram upload timestamp
+city_id
+     id |      name
+    ----+----------------
+      1 | Bangkok
+      2 | Beijing
+      3 | Bogotá
+      4 | Buenos Aires
+      5 | Cairo
+      6 | Delhi
+      7 | Dhaka
+      8 | Guangzhou
+      9 | Istanbul
+     10 | Jakarta
+     11 | Karachi
+     12 | Kolkata
+     13 | Lagos
+     14 | London
+     15 | Los Angeles
+     16 | Manila
+     17 | Mexico City
+     18 | Mumbai
+     19 | New York City
+     20 | Osaka
+     21 | Rio de Janeiro
+     22 | São Paulo
+     23 | Seoul
+     24 | Shanghai
+     25 | Tianjin
+     26 | Tokyo
+     27 | Paris
+     28 | Berlin
+     29 | Madrid
+     30 | Kiev
+     31 | Rome
+     32 | Budapest
+     33 | Milan
+     34 | Sofia
+     35 | Nairobi
+     36 | Sydney
+     37 | Moscow
+     38 | Johannesburg
+     39 | Toronto
+     40 | Vancouver
+     41 | Chicago
+     42 | Austin
+     43 | Seattle
+     44 | Singapore
+month_id - YYYY_MM, e.g. 2013_9 is September 2013
+lat - instagram upload latitude
+long - instagram upload longitude
+x1 - bounding box left in pixels
+y1 - bounding box top in pixels
+x2 - bounding box right in pixels
+y2 - bounding box bottom in pixels
+width - image width
+height - image height
+
+** Annotations **
+clothing_pattern
+major_color
+wearing_necktie
+collar_presence
+wearing_scarf
+sleeve_length
+neckline_shape
+clothing_category
+wearing_jacket
+wearing_hat
+wearing_glasses
+multiple_layers
+
+Note: Not all examples have all attributes available.
