@@ -75,7 +75,7 @@ class StreetStyleDataset(object):
                 self.bbox_data.append(bbox)
                 # attribute values
                 attribs_str = row[13:]
-                attribs = [None]*len(StreetStyleDataset.attributes)
+                attribs = [-1]*len(StreetStyleDataset.attributes)
                 for i, attrib in enumerate(attribs_str):
                     if attrib != '':
                         attribs[i] = StreetStyleDataset.attributes[i][attrib]
@@ -98,7 +98,7 @@ class StreetStyleDataset(object):
         for train_idx in self.train_inds:
             attribs = self.attrib_data[train_idx]
             for attrib_idx, attrib_value in enumerate(attribs):
-                if attrib_value != None:
+                if attrib_value != -1:
                     self.attrib_inds[attrib_idx][attrib_value].append(train_idx)
 
         # print(len(self.attrib_inds[9][1])) # num wearing hat
@@ -130,9 +130,11 @@ class StreetStyleDataset(object):
     def next_eval(self):
         '''
         Returns the next mini-batch from the evaluation split or None if no
-        more eval data is available.
+        more eval data is available. If None, resets so next time called will get the
+        first eval batch and so on.
         '''
         if self.cur_eval_start_idx == len(self.eval_inds):
+            self.cur_eval_start_idx = 0
             return None, None
 
         images = None
@@ -157,9 +159,11 @@ class StreetStyleDataset(object):
     def next_test(self):
         '''
         Returns the next mini-batch from the test split or None if no
-        more test data is available.
+        more test data is available. If None, resets so next time called will get the
+        first test batch and so on.
         '''
         if self.cur_test_start_idx == len(self.test_inds):
+            self.cur_test_start_idx = 0
             return None, None
 
         images = None
