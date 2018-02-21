@@ -123,7 +123,7 @@ class StreetStyleClassifierTest(BaseTest):
                     if len(class_inds) > 0:
                         class_inds = class_inds.view(class_inds.size(0))
                         predicted_class = predicted[class_inds]
-                        class_correct[j][k] += (predicted_class == k).sum()
+                        class_correct[j][k] += (predicted_class == k).sum().data[0]
                         class_total[j][k] += len(predicted_class)
             iter_count += 1
 
@@ -133,7 +133,9 @@ class StreetStyleClassifierTest(BaseTest):
         # calculate totals
         running_loss /= iter_count
         running_correct = 1.*running_correct / running_total
-        val_mean_class_acc = np.array([np.mean(1.*class_correct / class_total) for class_correct, class_total in zip(class_correct, class_total)])
+#         print_arr = [(1.*correct / total) for correct, total in zip(class_correct, class_total)]
+#         print(print_arr)
+        val_mean_class_acc = np.array([np.mean(1.*correct / total) for correct, total in zip(class_correct, class_total)])
 
         self.model.train()
         return running_loss, running_correct, val_mean_class_acc
@@ -141,6 +143,9 @@ class StreetStyleClassifierTest(BaseTest):
     def train_model(self, num_iters, **kwargs):
         visualize_batches = kwargs.get("visualize_every_n_batches", 50)        
         save_batches = kwargs.get("save_every_n_batches", 200)
+        
+        log_file = './log/train_log_'+ str(int(time.time())) + '.txt'
+        log_out = open(log_file, 'w')
 
         # counter for early stopping
         not_improved_for = 0
@@ -199,6 +204,9 @@ class StreetStyleClassifierTest(BaseTest):
                 print('LOGGING MODEL AFTER %d Iters:' %(i))
                 print('Training Loss: ' + str(running_loss))
                 print('Training Accuracy: ' + str(running_correct))
+                log_out.write('LOGGING MODEL AFTER %d Iters:\n' %(i))
+                log_out.write('Training Loss: ' + str(running_loss) + '\n')
+                log_out.write('Training Accuracy: ' + str(running_correct) + '\n')
                 running_loss[:] = 0
                 running_correct[:] = 0
                 running_total[:] = 0
@@ -212,6 +220,9 @@ class StreetStyleClassifierTest(BaseTest):
                 print('Eval Loss: ' + str(val_loss))
                 print('Eval Accuracy: ' + str(val_acc))
                 print('Eval MCA: ' + str(val_mean_class_acc))
+                log_out.write('Eval Loss: ' + str(val_loss) + '\n')
+                log_out.write('Eval Accuracy: ' + str(val_acc) + '\n')
+                log_out.write('Eval MCA: ' + str(val_mean_class_acc) + '\n')
                 # check if better than best model (according to mean class accuracy)
                 best_model_mean_class_sum = np.sum(self.log['best_model_val_mean_class_acc'])
                 cur_model_mean_class_sum = np.sum(val_mean_class_acc)
@@ -221,12 +232,15 @@ class StreetStyleClassifierTest(BaseTest):
                     self.log['best_model_val_loss'] = val_loss
                     self.log_best_model()
                     print('SAVED NEW BEST MODEL')
+                    log_out.write('SAVED NEW BEST MODEL\n')
                     not_improved_for = 0
                 else:
                     not_improved_for += 1
                     print('NOT IMPROVED FOR %d LOGS' %(not_improved_for))
+                    log_out.write('NOT IMPROVED FOR %d LOGS\n' %(not_improved_for))
                     if (not_improved_for == 3):
                         print('EARLY STOPPING...')
+                        log_out.write('EARLY STOPPING...\n')
                         early_stop = True
                 # save log
                 checkpoint = './log/'+ str(int(time.time())) + '_' + str(i) + '.tar'
@@ -238,17 +252,23 @@ class StreetStyleClassifierTest(BaseTest):
                 print('After %d Iters:' %(i))
                 print('Training Loss: ' + str(running_loss))
                 print('Training Accuracy: ' + str(running_correct))
+                log_out.write('After %d Iters\n:' %(i))
+                log_out.write('Training Loss: ' + str(running_loss) + '\n')
+                log_out.write('Training Accuracy: ' + str(running_correct) + '\n')
                 running_loss[:] = 0
                 running_correct[:] = 0
                 running_total[:] = 0
                 iter_count = 0
                 
             sys.stdout.flush()
+            log_out.flush()
             
             if early_stop:
                 break
         
         print('FINISHED TRAINING!')
+        log_out.write('FINISHED TRAINING!')
+        log_out.close()
 
     def test_model(self):
         '''
@@ -304,7 +324,7 @@ class StreetStyleClassifierTest(BaseTest):
                     if len(class_inds) > 0:
                         class_inds = class_inds.view(class_inds.size(0))
                         predicted_class = predicted[class_inds]
-                        class_correct[j][k] += (predicted_class == k).sum()
+                        class_correct[j][k] += (predicted_class == k).sum().data[0]
                         class_total[j][k] += len(predicted_class)
             iter_count += 1
 
