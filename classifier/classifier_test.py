@@ -4,6 +4,8 @@ from classifier_model import StreetStyleClassifier
 
 import numpy as np
 import matplotlib.pyplot as plt
+import time
+import sys
 
 import torch
 import torchvision
@@ -27,7 +29,8 @@ class StreetStyleClassifierTest(BaseTest):
 
     def create_data_loaders(self):
         transform = transforms.Compose([
-            ResizeTransform(299),
+            transforms.Resize((299, 299)),
+            transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
 
@@ -94,7 +97,7 @@ class StreetStyleClassifierTest(BaseTest):
                 labels = Variable(labels.long().cuda(), requires_grad=False)
             else:
                 images = Variable(images.float(), requires_grad=False)
-                lables = Variable(labels.long(), requires_grad=False)
+                labels = Variable(labels.long(), requires_grad=False)
 
             # classify mini-batch
             output = self.model(images)
@@ -102,9 +105,8 @@ class StreetStyleClassifierTest(BaseTest):
             for j, attrib_output in enumerate(output):
                 # only want loss for labeled attribs in image
                 attrib_label = labels[:, j]
-                attrib_label += 1 # shift so nonlabeled attribs are 0 instead of -1
-                good_indices = attrib_label.nonzero()
-                attrib_label -= 1 # shift back
+                good_indices = (attrib_label + 1).nonzero() # shift so nonlabeled attribs are 0 instead of -1
+                good_indices = good_indices.view(good_indices.size(0))
                 # remove unlabeled images in batch for this attrib
                 attrib_label = attrib_label[good_indices]
                 attrib_output = attrib_output[good_indices, :]
@@ -112,15 +114,17 @@ class StreetStyleClassifierTest(BaseTest):
                 attrib_loss = self.loss_function(attrib_output, attrib_label)
                 # save loss/accuracy
                 running_loss[j] += attrib_loss.data[0]
-                _, predicted = torch.max(attrib_output.data, 1)
-                running_correct[j] += (predicted == attrib_label.data).sum()
+                _, predicted = torch.max(attrib_output, 1)
+                running_correct[j] += (predicted.data == attrib_label.data).sum()
                 running_total[j] += attrib_label.size(0)
                 # save mean class accuracy info
                 for k in range(0, len(class_correct[j])):
                     class_inds = (attrib_label == k).nonzero()
-                    predicted_class = predicted[class_inds]
-                    class_correct[j][k] += (predicted_class == k).sum()
-                    class_total_count[j][k] += len(predicted_class)
+                    if len(class_inds) > 0:
+                        class_inds = class_inds.view(class_inds.size(0))
+                        predicted_class = predicted[class_inds]
+                        class_correct[j][k] += (predicted_class == k).sum()
+                        class_total[j][k] += len(predicted_class)
             iter_count += 1
 
             # next batch
@@ -129,7 +133,7 @@ class StreetStyleClassifierTest(BaseTest):
         # calculate totals
         running_loss /= iter_count
         running_correct = 1.*running_correct / running_total
-        val_mean_class_acc = np.array([np.mean(1.*correct / total) for class_correct, class_total in zip(class_correct, class_total)])
+        val_mean_class_acc = np.array([np.mean(1.*class_correct / class_total) for class_correct, class_total in zip(class_correct, class_total)])
 
         self.model.train()
         return running_loss, running_correct, val_mean_class_acc
@@ -154,7 +158,7 @@ class StreetStyleClassifierTest(BaseTest):
                 labels = Variable(labels.long().cuda(), requires_grad=False)
             else:
                 images = Variable(images.float(), requires_grad=False)
-                lables = Variable(labels.long(), requires_grad=False)
+                labels = Variable(labels.long(), requires_grad=False)
 
             # zero param gradients
             self.optimizer.zero_grad()
@@ -165,16 +169,15 @@ class StreetStyleClassifierTest(BaseTest):
             for j, attrib_output in enumerate(output):
                 # only want loss for labeled attribs in image
                 attrib_label = labels[:, j]
-                attrib_label += 1 # shift so nonlabeled attribs are 0 instead of -1
-                good_indices = attrib_label.nonzero()
-                attrib_label -= 1 # shift back
+                good_indices = (attrib_label + 1).nonzero() # shift so nonlabeled attribs are 0 instead of -1
+                good_indices = good_indices.view(good_indices.size(0))
                 # remove unlabeled images in batch for this attrib
                 attrib_label = attrib_label[good_indices]
                 attrib_output = attrib_output[good_indices, :]
                 # get loss
                 attrib_loss = self.loss_function(attrib_output, attrib_label)
                 # backward pass
-                attrib_loss.backward()
+                attrib_loss.backward(retain_graph=True)
                 # save loss/accuracy
                 running_loss[j] += attrib_loss.data[0]
                 _, predicted = torch.max(attrib_output.data, 1)
@@ -216,12 +219,13 @@ class StreetStyleClassifierTest(BaseTest):
                     self.log['best_model_val_mean_class_acc'] = val_mean_class_acc
                     self.log['best_model_val_acc'] = val_acc
                     self.log['best_model_val_loss'] = val_loss
+                    self.log_best_model()
                     print('SAVED NEW BEST MODEL')
                     not_improved_for = 0
                 else:
                     not_improved_for += 1
                     print('NOT IMPROVED FOR %d LOGS' %(not_improved_for))
-                    if (not_improved_for == 5):
+                    if (not_improved_for == 3):
                         print('EARLY STOPPING...')
                         early_stop = True
                 # save log
@@ -238,6 +242,8 @@ class StreetStyleClassifierTest(BaseTest):
                 running_correct[:] = 0
                 running_total[:] = 0
                 iter_count = 0
+                
+            sys.stdout.flush()
             
             if early_stop:
                 break
@@ -245,7 +251,70 @@ class StreetStyleClassifierTest(BaseTest):
         print('FINISHED TRAINING!')
 
     def test_model(self):
-        # TODO
-        # implement this to evaluate on testing data
-        # should take in options to decide which attributes you want to test
-        pass
+        '''
+        Evaluates the current model on the entire test split.
+        Returns the loss, accuracy, and mean class accuracy.
+        '''
+        self.model.eval()
+        # structures to keep track of per-class accuracy
+        class_correct = []
+        class_total = []
+        for i in range(0, 12):
+            num_attr_classes = len(StreetStyleDataset.attributes[i])
+            attr_count = np.zeros((num_attr_classes))
+            attr_total = np.zeros((num_attr_classes))
+            class_correct.append(attr_count)
+            class_total.append(attr_total)
+
+        running_loss = np.zeros((12)) # loss for each attribute
+        running_correct = np.zeros((12)) # number correct classifications for each attribute
+        running_total = np.zeros((12)) # total number of classifications attempted
+        iter_count = 0
+        # get first batch
+        images, labels = self.test_loader.next_test()
+        while images is not None:
+            if self.use_gpu:
+                images = Variable(images.float().cuda(), requires_grad=False)
+                labels = Variable(labels.long().cuda(), requires_grad=False)
+            else:
+                images = Variable(images.float(), requires_grad=False)
+                labels = Variable(labels.long(), requires_grad=False)
+
+            # classify mini-batch
+            output = self.model(images)
+            # calculate loss/accuracy
+            for j, attrib_output in enumerate(output):
+                # only want loss for labeled attribs in image
+                attrib_label = labels[:, j]
+                good_indices = (attrib_label + 1).nonzero() # shift so nonlabeled attribs are 0 instead of -1
+                good_indices = good_indices.view(good_indices.size(0))
+                # remove unlabeled images in batch for this attrib
+                attrib_label = attrib_label[good_indices]
+                attrib_output = attrib_output[good_indices, :]
+                # get loss
+                attrib_loss = self.loss_function(attrib_output, attrib_label)
+                # save loss/accuracy
+                running_loss[j] += attrib_loss.data[0]
+                _, predicted = torch.max(attrib_output, 1)
+                running_correct[j] += (predicted.data == attrib_label.data).sum()
+                running_total[j] += attrib_label.size(0)
+                # save mean class accuracy info
+                for k in range(0, len(class_correct[j])):
+                    class_inds = (attrib_label == k).nonzero()
+                    if len(class_inds) > 0:
+                        class_inds = class_inds.view(class_inds.size(0))
+                        predicted_class = predicted[class_inds]
+                        class_correct[j][k] += (predicted_class == k).sum()
+                        class_total[j][k] += len(predicted_class)
+            iter_count += 1
+
+            # next batch
+            images, labels = self.test_loader.next_test()
+
+        # calculate totals
+        running_loss /= iter_count
+        running_correct = 1.*running_correct / running_total
+        test_mean_class_acc = np.array([np.mean(1.*class_correct / class_total) for class_correct, class_total in zip(class_correct, class_total)])
+
+        self.model.train()
+        return running_loss, running_correct, test_mean_class_acc

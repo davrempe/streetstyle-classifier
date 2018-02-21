@@ -125,7 +125,7 @@ class StreetStyleDataset(object):
                 images = torch.Tensor(self.batch_size, img.shape[0], img.shape[1], img.shape[2])
             images[i] = img
             labels[i] = label
-        return images, labels
+        return images, torch.from_numpy(labels)
 
     def next_eval(self):
         '''
@@ -154,7 +154,7 @@ class StreetStyleDataset(object):
                 images = torch.Tensor(len(img_indices), img.shape[0], img.shape[1], img.shape[2])
             images[i] = img
             labels[i] = label
-        return images, labels
+        return images, torch.from_numpy(labels)
 
     def next_test(self):
         '''
@@ -183,7 +183,7 @@ class StreetStyleDataset(object):
                 images = torch.Tensor(len(img_indices), img.shape[0], img.shape[1], img.shape[2])
             images[i] = img
             labels[i] = label
-        return images, labels
+        return images, torch.from_numpy(labels)
 
 
     def load_img(self, img_idx):
