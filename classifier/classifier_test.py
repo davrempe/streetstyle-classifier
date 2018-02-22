@@ -22,9 +22,9 @@ class StreetStyleClassifierTest(BaseTest):
         self.log['train_acc'] = []
         self.log['val_acc'] = []
         self.log['val_mean_class_acc'] = []
-        self.log['best_model_val_mean_class_acc'] = np.array([0]*12)
-        self.log['best_model_val_acc'] = np.array([0]*12)
-        self.log['best_model_val_loss'] = np.array([float('inf')]*12)
+        self.log['best_model_val_mean_class_acc'] = [0]*12
+        self.log['best_model_val_acc'] = [0]*12
+        self.log['best_model_val_loss'] = [float('inf')]*12
 
 
     def create_data_loaders(self):
@@ -199,8 +199,8 @@ class StreetStyleClassifierTest(BaseTest):
                 # log training info
                 running_loss /= iter_count
                 running_correct = 1.*running_correct / running_total
-                self.log['train_loss'].append(running_loss)
-                self.log['train_acc'].append(running_correct)
+                self.log['train_loss'].append(np.ndarray.tolist(running_loss))
+                self.log['train_acc'].append(np.ndarray.tolist(running_correct))
                 print('LOGGING MODEL AFTER %d Iters:' %(i))
                 print('Training Loss: ' + str(running_loss))
                 print('Training Accuracy: ' + str(running_correct))
@@ -214,9 +214,9 @@ class StreetStyleClassifierTest(BaseTest):
                 # run on evaluation set
                 val_loss, val_acc, val_mean_class_acc = self.eval_model()
                 # log eval info
-                self.log['val_loss'].append(val_loss)
-                self.log['val_acc'].append(val_acc)
-                self.log['val_mean_class_acc'].append(val_mean_class_acc)
+                self.log['val_loss'].append(np.ndarray.tolist(val_loss))
+                self.log['val_acc'].append(np.ndarray.tolist(val_acc))
+                self.log['val_mean_class_acc'].append(np.ndarray.tolist(val_mean_class_acc))
                 print('Eval Loss: ' + str(val_loss))
                 print('Eval Accuracy: ' + str(val_acc))
                 print('Eval MCA: ' + str(val_mean_class_acc))
@@ -224,12 +224,12 @@ class StreetStyleClassifierTest(BaseTest):
                 log_out.write('Eval Accuracy: ' + str(val_acc) + '\n')
                 log_out.write('Eval MCA: ' + str(val_mean_class_acc) + '\n')
                 # check if better than best model (according to mean class accuracy)
-                best_model_mean_class_sum = np.sum(self.log['best_model_val_mean_class_acc'])
+                best_model_mean_class_sum = np.sum(np.array(self.log['best_model_val_mean_class_acc']))
                 cur_model_mean_class_sum = np.sum(val_mean_class_acc)
                 if cur_model_mean_class_sum > best_model_mean_class_sum:
-                    self.log['best_model_val_mean_class_acc'] = val_mean_class_acc
-                    self.log['best_model_val_acc'] = val_acc
-                    self.log['best_model_val_loss'] = val_loss
+                    self.log['best_model_val_mean_class_acc'] = np.ndarray.tolist(val_mean_class_acc)
+                    self.log['best_model_val_acc'] = np.ndarray.tolist(val_acc)
+                    self.log['best_model_val_loss'] = np.ndarray.tolist(val_loss)
                     self.log_best_model()
                     print('SAVED NEW BEST MODEL')
                     log_out.write('SAVED NEW BEST MODEL\n')
@@ -334,7 +334,7 @@ class StreetStyleClassifierTest(BaseTest):
         # calculate totals
         running_loss /= iter_count
         running_correct = 1.*running_correct / running_total
-        test_mean_class_acc = np.array([np.mean(1.*class_correct / class_total) for class_correct, class_total in zip(class_correct, class_total)])
+        test_mean_class_acc = np.array([np.mean(1.*correct / total) for correct, total in zip(class_correct, class_total)])
 
         self.model.train()
         return running_loss, running_correct, test_mean_class_acc
