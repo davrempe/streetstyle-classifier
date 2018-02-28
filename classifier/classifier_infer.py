@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import sys
+import copy
 
 import torch
 import torchvision
@@ -27,8 +28,7 @@ class StreetStyleClassifierInfer(BaseTest):
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
-
-        dataset = NewsAnchorDataset('cloth_test', 'cloth_dict.pkl', batch_size=32, 
+        dataset = NewsAnchorDataset('../data/cloth_test', '../data/cloth_dict.pkl', batch_size=32, 
                                         transform=transform)
         self.infer_loader = dataset
 
@@ -59,7 +59,7 @@ class StreetStyleClassifierInfer(BaseTest):
         Returns infer result for each attribute.
         '''
         self.model.eval()
-        infer_result = {}
+        infer_result = []
         print("Inference starting...")
         iter_count = 0
         # get first batch
@@ -74,18 +74,24 @@ class StreetStyleClassifierInfer(BaseTest):
 
             # classify mini-batch
             output = self.model(images)
-            # calculate loss/accuracy
+            attribute_pre = np.zeros((len(images), len(output)))
+            # store results
             for j, attrib_output in enumerate(output):
                 _, predicted = torch.max(attrib_output, 1)
-                video_name = manifest[j][0]
-                pid = manifest[j][1]
-                if not video_name in infer_result:
-                    infer_result[video_name] = []
-                if len(infer_result[video_name]) < pid:
-                    infer_result[video_name].append([])
-                infer_result[video_name][pid].append(predicted)
+#                 video_name = manifest[j][0]
+#                 pid = manifest[j][1]
+#                 if not video_name in infer_result:
+#                     infer_result[video_name] = []
+#                 if len(infer_result[video_name]) < pid:
+#                     infer_result[video_name].append([])
+#                 infer_result[video_name][pid].append(predicted)
+                attribute_pre[:, j] = predicted.cpu().data.numpy()
+            for i, meta in enumerate(manifest):
+                res = copy.deepcopy(meta)
+                res.append(attribute_pre[i].tolist())
+                infer_result.append(res)
+            
             iter_count += 1
-
             # next batch
             images, manifest = self.infer_loader.next_infer()
 

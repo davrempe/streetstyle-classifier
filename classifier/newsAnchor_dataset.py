@@ -38,8 +38,8 @@ class NewsAnchorDataset(object):
         - batch_size: mini-batch size for sampling
         - transform: torchvision transforms to apply to each image
         '''
-        self.image_data_dir = '../data/' + image_data_dir + '/'
-        self.manifest_data_path = '../data/' + manifest_data_path
+        self.image_data_dir = image_data_dir
+        self.manifest_data_path = manifest_data_path
         self.batch_size = batch_size
         self.transform = transform
         # state variables for mini-batch sampling
@@ -53,18 +53,18 @@ class NewsAnchorDataset(object):
     '''
     def preload(self):
         # load in file name for images of each anchor
-        manifest_data = pickle.load(open(manifest_data_path, 'rb'))
+        manifest_data = pickle.load(open(self.manifest_data_path, 'rb'))
         self.img_name_data = []
         self.img_meta_data = []
         for video_name, img_group in manifest_data.items():
             for pid, img_list in enumerate(img_group):
                 for img_name in img_list:
                     self.img_name_data.append(img_name)
-                    self.img_meta_data.append((video_name, pid))
+                    self.img_meta_data.append([video_name, pid, img_name])
         ## For new manifest format
-        for meta in manifest_data:
-            self.img_name_data.append(meta[0])
-            self.img_meta_data.append((meta[1], meta[2]))
+#         for meta in manifest_data:
+#             self.img_name_data.append(meta[2])
+#         self.img_meta_data = manifest_data
         
         self.num_images = len(self.img_name_data)
         self.infer_inds = range(0, self.num_images)
@@ -103,7 +103,7 @@ class NewsAnchorDataset(object):
         '''
         img_name = self.img_name_data[img_idx]
         # load the image (located in path a/b/c/abcimagename.jpg)
-        img_path = self.image_data_dir + img_name
+        img_path = os.path.join(self.image_data_dir, img_name)
         img = Image.open(img_path)
         if self.transform is not None:
             img = self.transform(img)
