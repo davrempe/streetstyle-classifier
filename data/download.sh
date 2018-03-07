@@ -5,8 +5,8 @@ wget https://s3.amazonaws.com/kmatzen/streetstyle27k.manifest
 wget https://s3.amazonaws.com/kmatzen/streetstyle27k.tar
 tar -xvf streetstyle27k.tar
 
-# download NewsAnchor dataset
-gsutil cp gs://esper/tmp/cloth_dict.pkl .
-gsutil cp gs://esper/tmp/cloth_test.tar .
-tar -xvf cloth_test.tar
+# download NewsAnchor_train dataset
+wget https://storage.googleapis.com/esper/tmp/newsAnchor_train_img.tar
+wget https://storage.googleapis.com/esper/tmp/newsAnchor_train_manifest.pkl
+tar -xvf newsAnchor_train_img.tar
 
