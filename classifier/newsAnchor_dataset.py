@@ -10,27 +10,7 @@ import pickle
 
 
 class NewsAnchorDataset(object):
-    '''
-    Handles loading and stratified sampling from the NewsAnchor dataset.
-    '''
-    attributes = [
-        {'Solid': 0, 'Graphics' : 1, 'Striped' : 2, 'Floral' : 3, 'Plaid' : 4, 'Spotted' : 5}, # clothing_pattern
-        {'Black' : 0, 'White' : 1, 'More than 1 color' : 2, 'Blue' : 3, 'Gray' : 4, 'Red' : 5,
-                'Pink' : 6, 'Green' : 7, 'Yellow' : 8, 'Brown' : 9, 'Purple' : 10, 'Orange' : 11,
-                'Cyan' : 12}, # major_color
-        {'No': 0, 'Yes' : 1}, # wearing_necktie
-        {'No': 0, 'Yes' : 1}, # collar_presence
-        {'No': 0, 'Yes' : 1}, # wearing_scarf
-        {'Long sleeve' : 0, 'Short sleeve' : 1, 'No sleeve' : 2}, # sleeve_length
-        {'Round' : 0, 'Folded' : 1, 'V-shape' : 2}, # neckline_shape
-        {'Shirt' : 0, 'Outerwear' : 1, 'T-shirt' : 2, 'Dress' : 3,
-            'Tank top' : 4, 'Suit' : 5, 'Sweater' : 6}, # clothing_category
-        {'No': 0, 'Yes' : 1}, # wearing_jacket
-        {'No': 0, 'Yes' : 1}, # wearing_hat
-        {'No': 0, 'Yes' : 1}, # wearing_glasses
-        {'One layer': 0, 'Multiple layers' : 1} # multiple_layers
-    ]
-
+    
     def __init__(self, image_data_dir, manifest_data_path, batch_size=32, transform=None):
         '''
         - image_data_dir: directory holding the image data structure
@@ -56,15 +36,17 @@ class NewsAnchorDataset(object):
         manifest_data = pickle.load(open(self.manifest_data_path, 'rb'))
         self.img_name_data = []
         self.img_meta_data = []
-        for video_name, img_group in manifest_data.items():
-            for pid, img_list in enumerate(img_group):
-                for img_name in img_list:
-                    self.img_name_data.append(img_name)
-                    self.img_meta_data.append([video_name, pid, img_name])
+#         for video_name, img_group in manifest_data.items():
+#             for pid, img_list in enumerate(img_group):
+#                 for img_name in img_list:
+#                     self.img_name_data.append(img_name)
+#                     self.img_meta_data.append([video_name, pid, img_name])
+#         print(len(self.img_name_data))
         ## For new manifest format
-#         for meta in manifest_data:
-#             self.img_name_data.append(meta[2])
-#         self.img_meta_data = manifest_data
+        for meta in manifest_data:
+            self.img_name_data.append(meta[2])
+        self.img_meta_data = manifest_data
+        print("Total images: ", len(self.img_name_data))
         
         self.num_images = len(self.img_name_data)
         self.infer_inds = range(0, self.num_images)
@@ -95,7 +77,9 @@ class NewsAnchorDataset(object):
                 images = torch.Tensor(len(img_indices), img.shape[0], img.shape[1], img.shape[2])
             images[i] = img
         return images, manifest
-
+    
+    def init(self):
+        self.cur_infer_start_idx = 0
 
     def load_img(self, img_idx):
         '''

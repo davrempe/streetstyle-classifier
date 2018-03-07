@@ -22,13 +22,13 @@ class StreetStyleClassifierInfer(BaseTest):
     def __init__(self, use_gpu=True):
         super(self.__class__, self).__init__(use_gpu)
 
-    def create_data_loaders(self):
+    def create_data_loaders(self, img_data_dir, img_manifest_path):
         transform = transforms.Compose([
             transforms.Resize((299, 299)),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
-        dataset = NewsAnchorDataset('../data/cloth_test', '../data/cloth_dict.pkl', batch_size=32, 
+        dataset = NewsAnchorDataset(img_data_dir, img_manifest_path, batch_size=32, 
                                         transform=transform)
         self.infer_loader = dataset
 
@@ -45,6 +45,7 @@ class StreetStyleClassifierInfer(BaseTest):
     def visualize_single_batch(self):
         # get some random training images
         images, manifest = self.infer_loader.next_infer()
+        self.infer_loader.init()
         img = torchvision.utils.make_grid(images[:16], nrow=4)
         self.imshow(img)
 
