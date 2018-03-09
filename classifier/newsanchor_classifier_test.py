@@ -21,8 +21,8 @@ class NewsAnchorClassifierTest(BaseTest):
         super(self.__class__, self).__init__(use_gpu)
         self.log['train_acc'] = []
         self.log['val_acc'] = []
-        self.log['val_mean_class_acc'] = []
-        self.log['best_model_val_mean_class_acc'] = [0]*16
+        #self.log['val_mean_class_acc'] = []
+        #self.log['best_model_val_mean_class_acc'] = [0]*16
         self.log['best_model_val_acc'] = [0]*16
         self.log['best_model_val_loss'] = [float('inf')]*16
 
@@ -90,7 +90,8 @@ class NewsAnchorClassifierTest(BaseTest):
         self.loss_function = nn.CrossEntropyLoss()
 
     def create_optimizer(self):
-        self.optimizer = optim.SGD(self.model.parameters(), lr=1e-2, momentum=0.9, weight_decay=1e-4)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=1e-3, momentum=0.9, weight_decay=1e-4)
+#         self.optimizer = optim.Adam(self.model.parameters(), lr=1e-2, weight_decay=0)
 
     def train_model(self, num_iters, **kwargs):
         visualize_batches = kwargs.get("visualize_every_n_batches", 20)
@@ -164,22 +165,23 @@ class NewsAnchorClassifierTest(BaseTest):
                 running_total[:] = 0
                 iter_count = 0
                 # run on evaluation set
-                val_loss, val_acc, val_mean_class_acc = self.test_model()
+#                 val_loss, val_acc, val_mean_class_acc = self.test_model()
+                val_loss, val_acc = self.test_model()
                 # log eval info
                 self.log['val_loss'].append(np.ndarray.tolist(val_loss))
                 self.log['val_acc'].append(np.ndarray.tolist(val_acc))
-                self.log['val_mean_class_acc'].append(np.ndarray.tolist(val_mean_class_acc))
+                #self.log['val_mean_class_acc'].append(np.ndarray.tolist(val_mean_class_acc))
                 print('Eval Loss: ' + str(val_loss))
                 print('Eval Accuracy: ' + str(val_acc))
-                print('Eval MCA: ' + str(val_mean_class_acc))
+                #print('Eval MCA: ' + str(val_mean_class_acc))
                 log_out.write('Eval Loss: ' + str(val_loss) + '\n')
                 log_out.write('Eval Accuracy: ' + str(val_acc) + '\n')
-                log_out.write('Eval MCA: ' + str(val_mean_class_acc) + '\n')
+                #log_out.write('Eval MCA: ' + str(val_mean_class_acc) + '\n')
                 # check if better than best model (according to mean class accuracy)
                 best_model_loss_sum = np.sum(np.array(self.log['best_model_val_loss']))
                 cur_model_loss_sum = np.sum(val_loss)
                 if cur_model_loss_sum < best_model_loss_sum:
-                    self.log['best_model_val_mean_class_acc'] = np.ndarray.tolist(val_mean_class_acc)
+#                     self.log['best_model_val_mean_class_acc'] = np.ndarray.tolist(val_mean_class_acc)
                     self.log['best_model_val_acc'] = np.ndarray.tolist(val_acc)
                     self.log['best_model_val_loss'] = np.ndarray.tolist(val_loss)
                     self.log_best_model()
@@ -286,7 +288,7 @@ class NewsAnchorClassifierTest(BaseTest):
         # calculate totals
         running_loss /= iter_count
         running_correct = 1.*running_correct / running_total
-        test_mean_class_acc = np.array([np.mean(1.*correct / total) for correct, total in zip(class_correct, class_total)])
+        #test_mean_class_acc = np.array([np.mean(1.*correct / total) for correct, total in zip(class_correct, class_total)])
 
         self.model.train()
-        return running_loss, running_correct, test_mean_class_acc
+        return running_loss, running_correct#, test_mean_class_acc
