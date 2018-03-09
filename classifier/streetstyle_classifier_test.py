@@ -62,6 +62,8 @@ class StreetStyleClassifierTest(BaseTest):
         self.model = StreetStyleClassifier()
         if self.use_gpu:
             self.model = self.model.cuda()
+        # self.log_best_model()
+        # torch.save(self.log, './log/testcpustreetstylemodel.tar')
 
     def create_loss_function(self):
         self.loss_function = nn.CrossEntropyLoss()
