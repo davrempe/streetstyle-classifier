@@ -41,7 +41,7 @@ class NewsAnchorDataset(object):
 #                 for img_name in img_list:
 #                     self.img_name_data.append(img_name)
 #                     self.img_meta_data.append([video_name, pid, img_name])
-#         print(len(self.img_name_data))
+        
         ## For new manifest format
         for meta in manifest_data:
             self.img_name_data.append(meta[2])

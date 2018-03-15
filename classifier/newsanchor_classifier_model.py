@@ -59,7 +59,7 @@ class NewsAnchorClassifier(nn.Module):
 		for idx, attrib_layer in enumerate(self.attrib_layers):
 			if self.attrib_eval_list[idx]:
 				out.append(attrib_layer(feature_vec))
-		return out
+		return out, feature_vec
 
 class PassThrough(nn.Module):
 	def __init__(self):
