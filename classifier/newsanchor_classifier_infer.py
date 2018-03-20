@@ -1,13 +1,14 @@
 from base_test import BaseTest
 from streetstyle_dataset import StreetStyleDataset
-from newsAnchor_dataset import NewsAnchorDataset
-from classifier_model import StreetStyleClassifier
+from newsanchor_dataset import NewsAnchorDataset
+from newsanchor_classifier_model import NewsAnchorClassifier
 
 import numpy as np
 import matplotlib.pyplot as plt
 import time
 import sys
 import copy
+import pickle
 
 import torch
 import torchvision
@@ -17,18 +18,18 @@ import torch.nn as nn
 from torchvision import datasets, transforms
 from data_utils import ResizeTransform
 
-class StreetStyleClassifierInfer(BaseTest):
+class NewsAnchorClassifierInfer(BaseTest):
 
     def __init__(self, use_gpu=True):
         super(self.__class__, self).__init__(use_gpu)
 
-    def create_data_loaders(self, img_data_dir, img_manifest_path):
+    def create_data_loaders(self, img_data_dir, img_manifest_path, batch_size):
         transform = transforms.Compose([
             transforms.Resize((299, 299)),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
-        dataset = NewsAnchorDataset(img_data_dir, img_manifest_path, batch_size=32, 
+        dataset = NewsAnchorDataset(img_data_dir, img_manifest_path, batch_size=batch_size, 
                                         transform=transform)
         self.infer_loader = dataset
 
@@ -61,6 +62,7 @@ class StreetStyleClassifierInfer(BaseTest):
         '''
         self.model.eval()
         infer_result = []
+        feature_result = []
         print("Inference starting...")
         iter_count = 0
         # get first batch
@@ -74,7 +76,8 @@ class StreetStyleClassifierInfer(BaseTest):
                 images = Variable(images.float(), requires_grad=False)
 
             # classify mini-batch
-            output = self.model(images)
+            output, feature = self.model(images)
+            feature = feature.cpu().data.numpy()
             attribute_pre = np.zeros((len(images), len(output)))
             # store results
             for j, attrib_output in enumerate(output):
@@ -91,9 +94,14 @@ class StreetStyleClassifierInfer(BaseTest):
                 res = copy.deepcopy(meta)
                 res.append(attribute_pre[i].tolist())
                 infer_result.append(res)
+                feature_result.append((res[2], feature[i]))
             
             iter_count += 1
             # next batch
             images, manifest = self.infer_loader.next_infer()
+            
+            if iter_count % 500 == 0:
+                pickle.dump(infer_result, open('../../data/cloth/cloth_all_infer.pkl', 'wb'), protocol=2)
+                pickle.dump(feature_result, open('../../data/cloth/cloth_all_feature.pkl', 'wb'), protocol=2)
 
-        return infer_result
+        return infer_result, feature_result
